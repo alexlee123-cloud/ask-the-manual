@@ -1,0 +1,19 @@
+# Manuals the assistant answers from. download_manuals.py fetches each `url`
+# into data/manuals/ (git-ignored, because manuals are copyrighted).
+#
+# TODO (Week 2): confirm each URL in a browser and add the Haas mill documents.
+# Fields:
+#   id:       short unique name, used as the file name
+#   title:    shown in citations
+#   machine:  machine family, lets the eval compare one machine vs. two
+#   url:      direct link to a PDF or an HTML page
+manuals:
+  - id: osha-3120-lockout-tagout
+    title: "OSHA 3120: Control of Hazardous Energy (Lockout/Tagout)"
+    machine: general-safety
+    url: https://www.osha.gov/sites/default/files/publications/osha3120.pdf
+
+  # - id: haas-mill-operator
+  #   title: "Haas Mill Operator's Manual"
+  #   machine: haas-mill
+  #   url: <paste link from haascnc.com>

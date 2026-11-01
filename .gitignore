@@ -1,0 +1,12 @@
+# Downloaded manuals are copyrighted: never commit them
+data/
+# Vector index built from the manuals
+index/
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+eval/results/
+.DS_Store
+*.egg-info/

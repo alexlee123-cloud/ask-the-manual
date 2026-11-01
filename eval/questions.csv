@@ -1,0 +1,11 @@
+question,expected_contains,expected_location,answerable
+What torque should the impeller nut be tightened to?,45 ft-lb,section: Mechanical Seal Replacement,yes
+How often should the bearings be greased?,"2,000",section: Lubrication,yes
+How much grease goes into each bearing?,0.25,section: Lubrication,yes
+What does alarm code E02 mean?,bearing temperature,section: Alarm Codes,yes
+The pump sounds like it is pumping gravel. What is wrong?,cavitation,section: Troubleshooting,yes
+What is the maximum discharge pressure?,150 psi,section: Specifications,yes
+What thread direction is the impeller nut?,left,section: Mechanical Seal Replacement,yes
+What should I do before servicing the pump?,lock,section: Safety,yes
+What is the warranty period for the CP-200?,,,no
+How do I reprogram the variable frequency drive?,,,no
