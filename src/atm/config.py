@@ -11,14 +11,14 @@ except ImportError:  # python-dotenv is optional
     pass
 
 ROOT = Path(__file__).resolve().parents[2]
-MANUALS_DIR = Path(os.getenv("ATM_MANUALS_DIR", ROOT / "data" / "manuals"))
+MANUALS_DIR = Path(os.getenv("ATM_MANUALS_DIR") or ROOT / "data" / "manuals").expanduser()
 SAMPLES_DIR = ROOT / "samples"
 INDEX_DIR = Path(os.getenv("ATM_INDEX_DIR", ROOT / "index"))
 COLLECTION = os.getenv("ATM_COLLECTION", "manuals")
 
 MODEL = os.getenv("ATM_MODEL", "claude-opus-5-5")
 EFFORT = os.getenv("ATM_EFFORT", "low")
-TOP_K = int(os.getenv("ATM_TOP_K", "5"))
+TOP_K = int(os.getenv("ATM_TOP_K", "8"))
 
 # Chunking: roughly 200-300 words per chunk, with overlap so a step that
 # spans a boundary still lands whole in at least one chunk.

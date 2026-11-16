@@ -8,6 +8,7 @@ Metrics
     python eval/run_eval.py                    # full run (calls the Claude API)
     python eval/run_eval.py --retrieval-only   # free: scores search only
     python eval/run_eval.py --k 3              # try a different top-k
+    python eval/run_eval.py --questions eval/questions-manuals.csv   # the real Haas/OSHA manuals
 """
 
 from __future__ import annotations
@@ -44,7 +45,10 @@ def main() -> None:
         hits = search(row["question"], k=args.k)
         r = {"question": row["question"], "answerable": answerable}
         if answerable:
-            r["retrieval_hit"] = any(h.location == row["expected_location"] for h in hits)
+            # expected_location is a location ("PDF p. 12") or a full citation
+            # ("Manual title, PDF p. 12"); '|' separates acceptable alternatives.
+            expected = {e.strip() for e in row["expected_location"].split("|")}
+            r["retrieval_hit"] = any(h.location in expected or h.citation in expected for h in hits)
         if not args.retrieval_only:
             ans = ask(row["question"], k=args.k)
             r["answer"] = ans.text

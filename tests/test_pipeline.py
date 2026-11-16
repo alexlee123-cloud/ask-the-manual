@@ -110,3 +110,28 @@ def test_user_message_format():
 
     msg = build_user_message("q?", [Hit("text", "Manual", "p. 2", "m", 0.1)])
     assert "[1] (Manual, p. 2)\ntext" in msg
+
+
+def test_manifest_matches_hand_downloaded_file_names():
+    from pathlib import Path
+
+    from atm.ingest import machine_for, title_for
+
+    mill = Path("english---mill-ngc---operator's-manual---2022.pdf")
+    assert title_for(mill).startswith("Haas Mill")
+    assert machine_for(mill) == "haas-mill"
+    assert machine_for(Path("OSHA3120.pdf")) == "general-safety"
+    assert title_for(Path("29 CFR 1910.147 (up to date).pdf")).startswith("29 CFR 1910.147")
+    assert machine_for(Path("some-other-manual.pdf")) == "other"
+
+
+def test_table_of_contents_chunks_are_skipped():
+    toc = "\n".join(f"Section {i} ........................ {i}" for i in range(10))
+    assert chunk_page(Page("doc", "Doc", "PDF p. 1", toc)) == []
+
+
+def test_search_can_filter_by_machine(collection):
+    hits = search("impeller nut torque", k=3, collection=collection, machines=["haas-mill"])
+    assert hits == []
+    hits = search("impeller nut torque", k=3, collection=collection, machines=["other"])
+    assert len(hits) == 3
