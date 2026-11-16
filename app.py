@@ -10,7 +10,7 @@ import streamlit as st
 
 from atm import config
 from atm.answer import ask
-from atm.ingest import build_index, default_source
+from atm.ingest import ManualsFolderError, build_index, default_source
 from atm.retrieve import get_collection, indexed_manuals
 
 MACHINE_LABELS = {
@@ -43,8 +43,16 @@ with st.sidebar:
     else:
         st.info("No manuals indexed yet. Click **Build index** below.")
 
-    source = default_source()
+    try:
+        source = default_source()
+    except ManualsFolderError as e:
+        st.error(str(e))
+        st.stop()
     st.caption(f"Manuals folder: `{source}`")
+    if source == config.SAMPLES_DIR:
+        st.caption("No manuals folder set, so this uses the small fictional sample manual. Set ATM_MANUALS_DIR in .env.")
+    elif manuals and all(t.startswith("CP-200") for t in manuals):
+        st.warning("The index only has the sample manual. Click **Rebuild index** to load your manuals.")
     if st.button("Rebuild index" if manuals else "Build index", use_container_width=True):
         log = st.empty()
         with st.spinner("Reading and indexing the manuals. The first run takes a few minutes..."):

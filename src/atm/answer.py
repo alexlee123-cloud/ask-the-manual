@@ -21,8 +21,10 @@ You are given numbered excerpts from the manuals. Answer using only those excerp
 - Give exact values (torques, clearances, part numbers) exactly as written.
 - Excerpts can come from different machines (for example a mill and a lathe manual).
   When they differ, say which machine each fact applies to.
-- If the excerpts don't answer the question, reply with exactly: {NOT_FOUND}
-  Do not guess or fill gaps from general knowledge; a wrong spec can injure someone."""
+- A short note, warning or table row counts: if any excerpt states the answer, give it.
+- If the excerpts only partly answer the question, give what they say and name what is missing.
+- Only if no excerpt is relevant at all, reply with exactly this and nothing else: {NOT_FOUND}
+- Never guess or fill gaps from general knowledge; a wrong spec can injure someone."""
 
 
 @dataclass
@@ -33,7 +35,8 @@ class Answer:
 
     @property
     def found(self) -> bool:
-        return NOT_FOUND not in self.text
+        # Only a bare "not found" reply counts; a partial answer that mentions it still has content.
+        return self.text.strip().rstrip(".") != NOT_FOUND.rstrip(".")
 
 
 def format_excerpts(hits: list[Hit]) -> str:

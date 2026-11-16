@@ -135,3 +135,21 @@ def test_search_can_filter_by_machine(collection):
     assert hits == []
     hits = search("impeller nut torque", k=3, collection=collection, machines=["other"])
     assert len(hits) == 3
+
+
+def test_partial_answer_mentioning_not_found_still_counts_as_found():
+    from atm.answer import Answer
+
+    assert not Answer(NOT_FOUND).found
+    assert Answer(f"Grease it weekly [1]. The grease type: {NOT_FOUND}").found
+
+
+def test_wrong_manuals_folder_fails_loudly(tmp_path, monkeypatch):
+    from atm.ingest import ManualsFolderError, default_source
+
+    monkeypatch.setattr(config, "MANUALS_DIR", tmp_path / "missing")
+    monkeypatch.setattr(config, "MANUALS_DIR_SET", True)
+    with pytest.raises(ManualsFolderError):
+        default_source()
+    monkeypatch.setattr(config, "MANUALS_DIR_SET", False)
+    assert default_source() == config.SAMPLES_DIR

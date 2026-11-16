@@ -218,10 +218,24 @@ def build_index(source_dir: Path, embedding_function=None, progress=print) -> in
     return len(chunks)
 
 
+class ManualsFolderError(Exception):
+    pass
+
+
 def default_source() -> Path:
-    """The manuals folder if it has manuals in it, else the bundled sample manual."""
+    """The manuals folder if it has manuals in it, else the bundled sample manual.
+
+    If ATM_MANUALS_DIR is set but wrong, fail loudly instead of silently indexing
+    the sample manual (which would make every real question come back "not found").
+    """
     if config.MANUALS_DIR.is_dir() and manual_files(config.MANUALS_DIR):
         return config.MANUALS_DIR
+    if config.MANUALS_DIR_SET:
+        problem = "doesn't exist" if not config.MANUALS_DIR.is_dir() else "has no PDF, HTML, Markdown or text files"
+        raise ManualsFolderError(
+            f"ATM_MANUALS_DIR is set to {config.MANUALS_DIR}, but that folder {problem}. "
+            "Fix the path in .env (check spaces and capital letters), then restart the app."
+        )
     return config.SAMPLES_DIR
 
 
@@ -230,7 +244,10 @@ def main() -> None:
     parser.add_argument("--samples", action="store_true", help="index the bundled sample manual only")
     args = parser.parse_args()
 
-    source = config.SAMPLES_DIR if args.samples else default_source()
+    try:
+        source = config.SAMPLES_DIR if args.samples else default_source()
+    except ManualsFolderError as e:
+        raise SystemExit(str(e))
     if source == config.SAMPLES_DIR and not args.samples:
         print(f"No manuals in {config.MANUALS_DIR}; indexing the sample manual instead.")
     n = build_index(source)

@@ -11,7 +11,8 @@ except ImportError:  # python-dotenv is optional
     pass
 
 ROOT = Path(__file__).resolve().parents[2]
-MANUALS_DIR = Path(os.getenv("ATM_MANUALS_DIR") or ROOT / "data" / "manuals").expanduser()
+MANUALS_DIR_SET = bool(os.getenv("ATM_MANUALS_DIR", "").strip())
+MANUALS_DIR = Path(os.getenv("ATM_MANUALS_DIR", "").strip() or ROOT / "data" / "manuals").expanduser()
 SAMPLES_DIR = ROOT / "samples"
 INDEX_DIR = Path(os.getenv("ATM_INDEX_DIR", ROOT / "index"))
 COLLECTION = os.getenv("ATM_COLLECTION", "manuals")

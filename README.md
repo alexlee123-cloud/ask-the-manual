@@ -36,6 +36,10 @@ cp .env.example .env    # add ANTHROPIC_API_KEY, and ATM_MANUALS_DIR = the folde
 streamlit run app.py    # opens in the browser; click "Build index" the first time
 ```
 
+If `streamlit` isn't found or runs from the wrong Python (common when Anaconda's `base` environment is active), make sure `.venv` is activated and run `python -m streamlit run app.py` instead.
+
+If an answer comes back "not found", open **Show the excerpts** under it to see what search returned, and check that the sidebar lists your manuals rather than the CP-200 sample.
+
 The first index build reads about 1,100 PDF pages and downloads the embedding model (about 80 MB), so it takes a few minutes. After that the index is saved in `index/` and the app starts right away. Click **Rebuild index** after adding or removing manuals.
 
 Command-line versions of the same steps:
