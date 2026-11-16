@@ -110,3 +110,46 @@ def test_user_message_format():
 
     msg = build_user_message("q?", [Hit("text", "Manual", "p. 2", "m", 0.1)])
     assert "[1] (Manual, p. 2)\ntext" in msg
+
+
+def test_manifest_matches_hand_downloaded_file_names():
+    from pathlib import Path
+
+    from atm.ingest import machine_for, title_for
+
+    mill = Path("english---mill-ngc---operator's-manual---2022.pdf")
+    assert title_for(mill).startswith("Haas Mill")
+    assert machine_for(mill) == "haas-mill"
+    assert machine_for(Path("OSHA3120.pdf")) == "general-safety"
+    assert title_for(Path("29 CFR 1910.147 (up to date).pdf")).startswith("29 CFR 1910.147")
+    assert machine_for(Path("some-other-manual.pdf")) == "other"
+
+
+def test_table_of_contents_chunks_are_skipped():
+    toc = "\n".join(f"Section {i} ........................ {i}" for i in range(10))
+    assert chunk_page(Page("doc", "Doc", "PDF p. 1", toc)) == []
+
+
+def test_search_can_filter_by_machine(collection):
+    hits = search("impeller nut torque", k=3, collection=collection, machines=["haas-mill"])
+    assert hits == []
+    hits = search("impeller nut torque", k=3, collection=collection, machines=["other"])
+    assert len(hits) == 3
+
+
+def test_partial_answer_mentioning_not_found_still_counts_as_found():
+    from atm.answer import Answer
+
+    assert not Answer(NOT_FOUND).found
+    assert Answer(f"Grease it weekly [1]. The grease type: {NOT_FOUND}").found
+
+
+def test_wrong_manuals_folder_fails_loudly(tmp_path, monkeypatch):
+    from atm.ingest import ManualsFolderError, default_source
+
+    monkeypatch.setattr(config, "MANUALS_DIR", tmp_path / "missing")
+    monkeypatch.setattr(config, "MANUALS_DIR_SET", True)
+    with pytest.raises(ManualsFolderError):
+        default_source()
+    monkeypatch.setattr(config, "MANUALS_DIR_SET", False)
+    assert default_source() == config.SAMPLES_DIR

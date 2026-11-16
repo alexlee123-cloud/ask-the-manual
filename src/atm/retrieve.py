@@ -14,6 +14,7 @@ class Hit:
     location: str
     doc_id: str
     distance: float
+    machine: str = ""
 
     @property
     def citation(self) -> str:
@@ -41,10 +42,25 @@ def get_collection(reset: bool = False, embedding_function=None):
     return client.get_or_create_collection(config.COLLECTION, **kwargs)
 
 
-def search(question: str, k: int = config.TOP_K, collection=None) -> list[Hit]:
+def search(question: str, k: int = config.TOP_K, collection=None, machines: list[str] | None = None) -> list[Hit]:
+    """Top-k chunks closest to the question, optionally only from some machine families."""
     collection = collection or get_collection()
-    res = collection.query(query_texts=[question], n_results=k)
+    where = None
+    if machines:
+        where = {"machine": machines[0]} if len(machines) == 1 else {"machine": {"$in": list(machines)}}
+    res = collection.query(query_texts=[question], n_results=k, where=where)
     hits = []
     for text, meta, dist in zip(res["documents"][0], res["metadatas"][0], res["distances"][0]):
-        hits.append(Hit(text, meta["title"], meta["location"], meta["doc_id"], dist))
+        hits.append(Hit(text, meta["title"], meta["location"], meta["doc_id"], dist, meta.get("machine", "")))
     return hits
+
+
+def indexed_manuals(collection=None) -> dict[str, dict]:
+    """Manuals in the index, keyed by title: their machine family and chunk count."""
+    collection = collection or get_collection()
+    out: dict[str, dict] = {}
+    metas = collection.get(include=["metadatas"])["metadatas"] or []
+    for m in metas:
+        entry = out.setdefault(m["title"], {"machine": m.get("machine", "other"), "chunks": 0})
+        entry["chunks"] += 1
+    return out

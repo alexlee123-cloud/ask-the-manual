@@ -22,7 +22,7 @@ from atm import config
 class Page:
     doc_id: str
     title: str
-    location: str  # "p. 12" for PDFs, "section: Spindle" for HTML/Markdown
+    location: str  # "PDF p. 12" (page of the PDF file, not the printed number) for PDFs, "section: Spindle" for HTML/Markdown
     text: str
 
 
@@ -33,6 +33,7 @@ class Chunk:
     title: str
     location: str
     text: str
+    machine: str = "other"
 
 
 # ---------- loading ----------
@@ -46,7 +47,7 @@ def load_pdf(path: Path, title: str) -> list[Page]:
     for i, page in enumerate(reader.pages, start=1):
         text = page.extract_text() or ""
         if text.strip():
-            pages.append(Page(path.stem, title, f"p. {i}", text))
+            pages.append(Page(path.stem, title, f"PDF p. {i}", text))
     return pages
 
 
@@ -83,27 +84,42 @@ def load_text(path: Path, title: str) -> list[Page]:
     return _split_by_headings(path.stem, title, path.read_text(encoding="utf-8"))
 
 
-def _manifest_titles() -> dict[str, str]:
-    """Titles from manuals.yaml, keyed by id (the downloaded file's name)."""
+def _manifest() -> list[dict]:
     path = config.ROOT / "manuals.yaml"
     if not path.exists():
-        return {}
+        return []
     import yaml
 
-    entries = (yaml.safe_load(path.read_text()) or {}).get("manuals") or []
-    return {m["id"]: m["title"] for m in entries if "id" in m and "title" in m}
+    return (yaml.safe_load(path.read_text()) or {}).get("manuals") or []
+
+
+def manifest_entry(path: Path) -> dict | None:
+    """The manuals.yaml entry for a file: by id, else by a `match` word in the file name."""
+    name = path.name.lower()
+    for m in _manifest():
+        if m.get("id") == path.stem:
+            return m
+    for m in _manifest():
+        if any(word.lower() in name for word in m.get("match") or []):
+            return m
+    return None
 
 
 def title_for(path: Path) -> str:
     """Title from manuals.yaml, else the first Markdown heading, else the file name."""
-    titles = _manifest_titles()
-    if path.stem in titles:
-        return titles[path.stem]
+    entry = manifest_entry(path)
+    if entry and entry.get("title"):
+        return entry["title"]
     if path.suffix in {".md", ".txt"}:
         for line in path.read_text(encoding="utf-8").splitlines():
             if line.startswith("# "):
                 return line[2:].strip()
     return path.stem.replace("-", " ").replace("_", " ").title()
+
+
+def machine_for(path: Path) -> str:
+    entry = manifest_entry(path)
+    return (entry or {}).get("machine") or "other"
 
 
 def load_file(path: Path) -> list[Page]:
@@ -127,6 +143,11 @@ def clean(text: str) -> str:
     return text.strip()
 
 
+def is_table_of_contents(text: str) -> bool:
+    """Contents pages ("Spindle ........ 104") match many questions but answer none."""
+    return len(re.findall(r"\.{5,}", text)) >= 4
+
+
 def chunk_page(page: Page, size: int = config.CHUNK_CHARS, overlap: int = config.CHUNK_OVERLAP) -> list[Chunk]:
     """Split one page into overlapping chunks, preferring paragraph breaks."""
     text = clean(page.text)
@@ -141,7 +162,7 @@ def chunk_page(page: Page, size: int = config.CHUNK_CHARS, overlap: int = config
                     end = cut + len(sep)
                     break
         piece = text[start:end].strip()
-        if piece:
+        if piece and not is_table_of_contents(piece):
             loc_slug = re.sub(r"[^a-z0-9]+", "-", page.location.lower()).strip("-")
             chunks.append(Chunk(f"{page.doc_id}:{loc_slug}:{n}", page.doc_id, page.title, page.location, piece))
             n += 1
@@ -158,11 +179,27 @@ def chunk_pages(pages: list[Page]) -> list[Chunk]:
 # ---------- indexing ----------
 
 
-def build_index(source_dir: Path, embedding_function=None) -> int:
+SUPPORTED = {".pdf", ".html", ".htm", ".md", ".txt"}
+
+
+def manual_files(source_dir: Path) -> list[Path]:
+    return sorted(
+        p for p in source_dir.rglob("*") if p.is_file() and p.suffix.lower() in SUPPORTED and not p.name.startswith(".")
+    )
+
+
+def build_index(source_dir: Path, embedding_function=None, progress=print) -> int:
     from atm.retrieve import get_collection
 
-    files = sorted(p for p in source_dir.rglob("*") if p.is_file())
-    chunks = chunk_pages([pg for f in files for pg in load_file(f)])
+    chunks = []
+    for f in manual_files(source_dir):
+        pages = load_file(f)
+        machine = machine_for(f)
+        file_chunks = chunk_pages(pages)
+        for c in file_chunks:
+            c.machine = machine
+        chunks.extend(file_chunks)
+        progress(f"Read {f.name}: {len(pages)} pages, {len(file_chunks)} chunks")
     if not chunks:
         raise SystemExit(f"No readable manuals found in {source_dir}")
 
@@ -173,9 +210,33 @@ def build_index(source_dir: Path, embedding_function=None) -> int:
         collection.add(
             ids=[c.id for c in part],
             documents=[c.text for c in part],
-            metadatas=[{"doc_id": c.doc_id, "title": c.title, "location": c.location} for c in part],
+            metadatas=[
+                {"doc_id": c.doc_id, "title": c.title, "location": c.location, "machine": c.machine} for c in part
+            ],
         )
+        progress(f"Embedded {min(i + batch, len(chunks))}/{len(chunks)} chunks")
     return len(chunks)
+
+
+class ManualsFolderError(Exception):
+    pass
+
+
+def default_source() -> Path:
+    """The manuals folder if it has manuals in it, else the bundled sample manual.
+
+    If ATM_MANUALS_DIR is set but wrong, fail loudly instead of silently indexing
+    the sample manual (which would make every real question come back "not found").
+    """
+    if config.MANUALS_DIR.is_dir() and manual_files(config.MANUALS_DIR):
+        return config.MANUALS_DIR
+    if config.MANUALS_DIR_SET:
+        problem = "doesn't exist" if not config.MANUALS_DIR.is_dir() else "has no PDF, HTML, Markdown or text files"
+        raise ManualsFolderError(
+            f"ATM_MANUALS_DIR is set to {config.MANUALS_DIR}, but that folder {problem}. "
+            "Fix the path in .env (check spaces and capital letters), then restart the app."
+        )
+    return config.SAMPLES_DIR
 
 
 def main() -> None:
@@ -183,12 +244,12 @@ def main() -> None:
     parser.add_argument("--samples", action="store_true", help="index the bundled sample manual only")
     args = parser.parse_args()
 
-    if args.samples or not config.MANUALS_DIR.exists() or not any(config.MANUALS_DIR.iterdir()):
-        source = config.SAMPLES_DIR
-        if not args.samples:
-            print(f"No manuals in {config.MANUALS_DIR}; indexing the sample manual instead.")
-    else:
-        source = config.MANUALS_DIR
+    try:
+        source = config.SAMPLES_DIR if args.samples else default_source()
+    except ManualsFolderError as e:
+        raise SystemExit(str(e))
+    if source == config.SAMPLES_DIR and not args.samples:
+        print(f"No manuals in {config.MANUALS_DIR}; indexing the sample manual instead.")
     n = build_index(source)
     print(f"Indexed {n} chunks from {source}")
 

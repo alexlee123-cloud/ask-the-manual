@@ -1,0 +1,10 @@
+question,expected_contains,expected_location,answerable
+How often should I grease the lathe chuck?,weekly,"Haas Lathe Operator's Manual (NGC, 2023), PDF p. 155",yes
+When should I run the spindle warm-up program on the Haas mill?,idle|warm-up,"Haas Mill Operator's Manual (NGC, 2022), PDF p. 126",yes
+How do I view the tool offsets on the Haas mill?,[OFFSET],"Haas Mill Operator's Manual (NGC, 2022), PDF p. 187",yes
+Can I use plain water as coolant on a Haas machine?,plain water,"Haas Mill Operator's Manual (NGC, 2022), PDF p. 37|Haas Lathe Operator's Manual (NGC, 2023), PDF p. 37",yes
+How often must energy control procedures be inspected?,annual,"OSHA 3120: Control of Hazardous Energy (Lockout/Tagout), PDF p. 12",yes
+When is lockout/tagout retraining required under 1910.147?,job assignment,"29 CFR 1910.147: The Control of Hazardous Energy (Lockout/Tagout), PDF p. 7",yes
+How is lockout protection handled during a shift change?,shift,"29 CFR 1910.147: The Control of Hazardous Energy (Lockout/Tagout), PDF p. 10",yes
+What is the price of a new Haas VF-2 mill?,,,no
+How do I replace the timing belt on a Bridgeport mill?,,,no
