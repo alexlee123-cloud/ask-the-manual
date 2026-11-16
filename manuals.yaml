@@ -1,7 +1,7 @@
 # Manuals the assistant answers from. download_manuals.py fetches each `url`
 # into data/manuals/ (git-ignored, because manuals are copyrighted).
 #
-# TODO (Week 2): confirm each URL in a browser and add the Haas mill documents.
+# Links found 2026-11-16 from official sources (haascnc.com, ecfr.gov, osha.gov).
 # Fields:
 #   id:       short unique name, used as the file name
 #   title:    shown in citations
@@ -13,7 +13,17 @@ manuals:
     machine: general-safety
     url: https://www.osha.gov/sites/default/files/publications/osha3120.pdf
 
-  # - id: haas-mill-operator
-  #   title: "Haas Mill Operator's Manual"
-  #   machine: haas-mill
-  #   url: <paste link from haascnc.com>
+  - id: osha-1910-147-lockout-tagout
+    title: "29 CFR 1910.147: The Control of Hazardous Energy (Lockout/Tagout)"
+    machine: general-safety
+    url: https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1910/subpart-J/section-1910.147
+
+  - id: haas-mill-operator
+    title: "Haas Mill Operator's Manual (Next Generation Control, 2022)"
+    machine: haas-mill
+    url: https://www.haascnc.com/content/dam/haascnc/en/service/manual/operator/english---mill-ngc---operator%27s-manual---2022.pdf
+
+  - id: haas-lathe-operator
+    title: "Haas Lathe Operator's Manual (Next Generation Control, 2023)"
+    machine: haas-lathe
+    url: https://www.haascnc.com/content/dam/haascnc/en/service/manual/operator/english---lathe-ngc---operator%27s-manual---2023.pdf
