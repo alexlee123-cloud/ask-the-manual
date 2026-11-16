@@ -11,8 +11,18 @@ except ImportError:  # python-dotenv is optional
     pass
 
 ROOT = Path(__file__).resolve().parents[2]
-MANUALS_DIR_SET = bool(os.getenv("ATM_MANUALS_DIR", "").strip())
-MANUALS_DIR = Path(os.getenv("ATM_MANUALS_DIR", "").strip() or ROOT / "data" / "manuals").expanduser()
+
+def _clean_path(value: str) -> str:
+    """Forgive common .env slips: a repeated 'ATM_MANUALS_DIR=' and stray quotes."""
+    value = value.strip()
+    while value.startswith("ATM_MANUALS_DIR="):
+        value = value[len("ATM_MANUALS_DIR=") :].strip()
+    return value.strip("\"'").strip()
+
+
+_manuals_dir = _clean_path(os.getenv("ATM_MANUALS_DIR", ""))
+MANUALS_DIR_SET = bool(_manuals_dir)
+MANUALS_DIR = Path(_manuals_dir or ROOT / "data" / "manuals").expanduser()
 SAMPLES_DIR = ROOT / "samples"
 INDEX_DIR = Path(os.getenv("ATM_INDEX_DIR", ROOT / "index"))
 COLLECTION = os.getenv("ATM_COLLECTION", "manuals")
